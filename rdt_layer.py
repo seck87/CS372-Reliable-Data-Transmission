@@ -33,6 +33,10 @@ class RDTLayer(object):
     currentIteration = 0                                # Use this for segment 'timeouts'
     # Add items as needed
 
+    # We need to differentiate the server and client.
+    thisIsServer = None
+    thisIsClient = None
+
     # ################################################################################################################ #
     # __init__()                                                                                                       #
     #                                                                                                                  #
@@ -47,6 +51,11 @@ class RDTLayer(object):
         self.dataToSend = ''
         self.currentIteration = 0
         # Add items as needed
+
+        #  In rdt_main, the side that receives dataToSend is client. So, every object will be initialized as server, and
+        #  the object that receives dataToSend will be set as "client".
+        self.thisIsServer = True
+        self.thisIsClient = False
 
     # ################################################################################################################ #
     # setSendChannel()                                                                                                 #
@@ -80,6 +89,11 @@ class RDTLayer(object):
     # ################################################################################################################ #
     def setDataToSend(self,data):
         self.dataToSend = data
+
+        #  In rdt_main, the side that receives dataToSend is client. So, the object that receives dataToSend will be set
+        #  as "client".
+        self.thisIsServer = False
+        self.thisIsClient = True
 
     # ################################################################################################################ #
     # getDataReceived()                                                                                                #
