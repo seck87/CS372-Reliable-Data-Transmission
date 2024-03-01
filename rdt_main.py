@@ -53,7 +53,7 @@ dataErrors = False
 clientToServerChannel = UnreliableChannel(outOfOrder,dropPackets,delayPackets,dataErrors)
 serverToClientChannel = UnreliableChannel(outOfOrder,dropPackets,delayPackets,dataErrors)
 
-# Creat client and server that connect to unreliable channels
+# Create client and server that connect to unreliable channels
 client.setSendChannel(clientToServerChannel)
 client.setReceiveChannel(serverToClientChannel)
 server.setSendChannel(serverToClientChannel)
@@ -83,6 +83,7 @@ while True:
     print("DataReceivedFromClient: {0}".format(dataReceivedFromClient))
 
     if dataReceivedFromClient == dataToSend:
+
         print('$$$$$$$$ ALL DATA RECEIVED $$$$$$$$')
         break
 
