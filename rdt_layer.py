@@ -289,11 +289,17 @@ class RDTLayer(object):
         if self.thisIsClient is False and self.thisIsServer is True:
 
             if listIncomingSegments:
-                for segment in listIncomingSegments:
+                for incomingSegment in listIncomingSegments:
                     # extract payload from each segment
-                    segmentPayload = segment.payload
+                    incomingSegmentPayload = incomingSegment.payload
                     # add this data to server data container
-                    self.dataReceived += segmentPayload
+                    self.dataReceived += incomingSegmentPayload
+
+                    # send ack for each segment
+                    segmentAck = Segment()
+                    segmentAck.setAck(incomingSegment.seqnum)
+                    print("Sending ack: ", segmentAck.to_string())
+                    self.sendChannel.send(segmentAck)
 
 
         # ############################################################################################################ #
@@ -309,7 +315,7 @@ class RDTLayer(object):
 
         # Somewhere in here you will be setting the contents of the ack segments to send.
         # The goal is to employ cumulative ack, just like TCP does...
-        acknum = "0"
+        # acknum = "0"
 
 
         # ############################################################################################################ #
