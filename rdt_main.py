@@ -1,5 +1,6 @@
 from rdt_layer import *
 from unreliable import UnreliableChannel
+import time
 
 # #################################################################################################################### #
 # Main                                                                                                                 #
@@ -85,7 +86,7 @@ while True:
         print('$$$$$$$$ ALL DATA RECEIVED $$$$$$$$')
         break
 
-    #time.sleep(0.1)
+    #time.sleep(1)
     input("Press enter to continue...")
 
 print("countTotalDataPackets: {0}".format(clientToServerChannel.countTotalDataPackets))

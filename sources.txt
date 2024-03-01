@@ -1,0 +1,4 @@
+# [seg 1 (4 chars) : "The "] [seg 2 (4 chars): "quic"] [seg 3 (4 chars): "k br"] [seg 4 (3 chars): "own"]
+https://edstem.org/us/courses/51611/discussion/4425338
+https://www.digitalocean.com/community/tutorials/python-time-sleep
+https://madpackets.com/2018/04/25/tcp-sequence-and-acknowledgement-numbers-explained/

@@ -33,9 +33,12 @@ class RDTLayer(object):
     currentIteration = 0                                # Use this for segment 'timeouts'
     # Add items as needed
 
-    # We need to differentiate the server and client.
+    # We need to differentiate the server and client
     thisIsServer = None
     thisIsClient = None
+
+    # Server saves the final data in this container
+    dataReceived = ""
 
     # ################################################################################################################ #
     # __init__()                                                                                                       #
@@ -52,8 +55,8 @@ class RDTLayer(object):
         self.currentIteration = 0
         # Add items as needed
 
-        #  In rdt_main, the side that receives dataToSend is client. So, every object will be initialized as server, and
-        #  the object that receives dataToSend will be set as "client".
+        # In rdt_main, the side that receives dataToSend is client. So, every object will be initialized as server, and
+        # the object that receives dataToSend will be set as "client".
         self.thisIsServer = True
         self.thisIsClient = False
 
@@ -90,8 +93,8 @@ class RDTLayer(object):
     def setDataToSend(self,data):
         self.dataToSend = data
 
-        #  In rdt_main, the side that receives dataToSend is client. So, the object that receives dataToSend will be set
-        #  as "client".
+        # In rdt_main, the side that receives dataToSend is client. So, the object that receives dataToSend will be set
+        # as "client".
         self.thisIsServer = False
         self.thisIsClient = True
 
@@ -107,10 +110,11 @@ class RDTLayer(object):
         # ############################################################################################################ #
         # Identify the data that has been received...
 
-        print('getDataReceived(): Complete this...')
+        # print('getDataReceived(): Complete this...')
 
         # ############################################################################################################ #
-        return ""
+        if self.thisIsClient is False and self.thisIsServer is True:
+            return self.dataReceived
 
     # ################################################################################################################ #
     # processData()                                                                                                    #
@@ -134,10 +138,6 @@ class RDTLayer(object):
     #                                                                                                                  #
     # ################################################################################################################ #
     def processSend(self):
-        segmentSend = Segment()
-
-        # ############################################################################################################ #
-        print('processSend(): Complete this...')
 
         # You should pipeline segments to fit the flow-control window
         # The flow-control window is the constant RDTLayer.FLOW_CONTROL_WIN_SIZE
@@ -148,18 +148,116 @@ class RDTLayer(object):
         # The data is just part of the entire string that you are trying to send.
         # The seqnum is the sequence number for the segment (in character number, not bytes)
 
+        listPacketSizes = self.calculatePacketSizes()
+        listDividedData = self.divideDataToSend(listPacketSizes)
+        listSequenceNumbers = self.calculatePacketSequenceNumbers(listDividedData)
+        listSegments = self.createSegments(listDividedData, listSequenceNumbers)
 
-        seqnum = "0"
-        data = "x"
+        for segment in listSegments:
+            print("Sending Segment:", segment.to_string())
+            self.sendChannel.send(segment)
 
 
-        # ############################################################################################################ #
-        # Display sending segment
-        segmentSend.setData(seqnum,data)
-        print("Sending segment: ", segmentSend.to_string())
+        # seqnum = "0"
+        # data = "x"
+        # segmentSend = Segment()
+        #
+        # # ############################################################################################################ #
+        # # Display sending segment
+        # segmentSend.setData(seqnum,data)
+        # print("Sending segment: ", segmentSend.to_string())
+        #
+        # # Use the unreliable sendChannel to send the segment
+        # self.sendChannel.send(segmentSend)
 
-        # Use the unreliable sendChannel to send the segment
-        self.sendChannel.send(segmentSend)
+
+    def calculatePacketSizes(self):
+        """Return a list of sizes that contains max number of characters per packet in flow control window size"""
+
+        # In case of DATA_LENGTH = 4 and FLOW_CONTROL_WIN_SIZE = 15, listPacketCharSize = [4, 4, 4, 3]. This will be
+        # later used for generating packets.
+        listPacketCharSizes = []
+
+        numberOfPackets = self.FLOW_CONTROL_WIN_SIZE // self.DATA_LENGTH
+
+        for _ in range(numberOfPackets):
+            listPacketCharSizes.append(self.DATA_LENGTH)
+
+        if self.FLOW_CONTROL_WIN_SIZE % self.DATA_LENGTH != 0:
+            listPacketCharSizes.append(self.FLOW_CONTROL_WIN_SIZE - numberOfPackets * self.DATA_LENGTH)
+
+        # print(listPacketCharSizes)
+        return listPacketCharSizes
+
+
+    def divideDataToSend(self, packetSizes):
+        """
+        Partition dataToSend to a list
+        :param packetSizes: list of packet sizes calculated according to the flow control window size
+        :return: dataToSend partitioned as a list of characters according to the given sizes
+        """
+
+        dividedData = []
+        index = 0
+
+        while index < len(self.dataToSend):
+            for size in packetSizes:
+                if index + size > len(self.dataToSend):
+                    chunk = self.dataToSend[index:]
+                    dividedData.append(chunk)
+                    index += len(chunk)
+                    break
+                else:
+                    # If enough characters are left, proceed as usual
+                    chunk = self.dataToSend[index:index + size]
+                    dividedData.append(chunk)
+                    index += size
+
+        # print(dividedData)
+        return dividedData
+
+
+    def calculatePacketSequenceNumbers(self, partitionedData):
+        """
+        Return a list of sequence numbers for packet generation
+        :param list: Sequence numbers will be generated for this list
+        :return: A list of sequence numbers
+        """
+
+        index = 0
+        seqNum = 0
+        listSeqNumbers = [index]
+
+        for element in partitionedData:
+            seqNum += len(element)
+            listSeqNumbers.append(seqNum)
+
+        # We do not need to calculate the sequence number after the last packet
+        listSeqNumbers.pop()
+
+        # print(listSeqNumbers)
+        return(listSeqNumbers)
+
+
+    def createSegments(self, listData, listSeqNum):
+        """
+        Creates a list of segment of objects containing information from the following lists
+        :param listData: a list of partitioned data according to the specifications
+        :param listSeqNum: a list of sequence numbers calculated using listData
+        :return: a list of segment objects to be sent
+        """
+
+        listSegments = []
+
+        for seqNum, data in zip(listSeqNum, listData):
+            segment = Segment()
+            segment.setData(seqNum, data)
+            listSegments.append(segment)
+
+        # for segment in listSegments:
+        #     segment.printToConsole()
+
+        return listSegments
 
     # ################################################################################################################ #
     # processReceive()                                                                                                 #
