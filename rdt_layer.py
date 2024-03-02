@@ -48,7 +48,7 @@ class RDTLayer(object):
     flowControlEnd = 4
 
     # Variable to store ack numbers received, for client
-    ackNumberContainer = [0]
+    ackNumberContainer = []
 
     # ################################################################################################################ #
     # __init__()                                                                                                       #
@@ -184,12 +184,24 @@ class RDTLayer(object):
                     print(self.ackNumberContainer)
 
             # After checking acks, send messages
+
+            # This should handle the cumulative ack by finding the highest ack number then shifting the control window
+            if self.ackNumberContainer:
+                ackToFind = max(self.ackNumberContainer)  # Highest char number ack'ed
+                for segment in self.listSegments:
+                    if ackToFind == segment.seqnum:
+                        self.flowControlStart = self.listSegments.index(segment) + 1
+                        self.flowControlEnd = self.flowControlStart + 4
+            else:
+                self.flowControlStart = 0
+                self.flowControlEnd = self.flowControlStart + 4
+
             for segment in self.listSegments[self.flowControlStart: self.flowControlEnd]:
                 print("Sending Segment:", segment.to_string())
                 self.sendChannel.send(segment)
 
-            self.flowControlStart += 4
-            self.flowControlEnd += 4
+            # self.flowControlStart += 4
+            # self.flowControlEnd += 4
 
         # seqnum = "0"
         # data = "x"
