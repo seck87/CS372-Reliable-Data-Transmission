@@ -43,9 +43,12 @@ class RDTLayer(object):
     # Segment container, will be created by server
     listSegments = None
 
-    # Flow control variables
+    # Flow control variables, at the start of data transfer
     flowControlStart = 0
     flowControlEnd = 4
+
+    # Variable to store ack numbers received, for client
+    ackNumberContainer = [0]
 
     # ################################################################################################################ #
     # __init__()                                                                                                       #
@@ -66,6 +69,7 @@ class RDTLayer(object):
         # the object that receives dataToSend will be set as "client".
         self.thisIsServer = True
         self.thisIsClient = False
+
 
     # ################################################################################################################ #
     # setSendChannel()                                                                                                 #
@@ -163,9 +167,23 @@ class RDTLayer(object):
             listSegments = self.createSegments(listDividedData, listSequenceNumbers)
             self.listSegments = listSegments
 
-        # Client sends data
+        # Client
         if self.thisIsClient is True and self.thisIsServer is False:
-            # call flow control window checker
+
+            # Client receives acks from server
+            if len(self.receiveChannel.receiveQueue) != 0:
+                listOfAckSegments = self.receiveChannel.receive()
+
+                # Check ack segments
+                for incomingSegment in listOfAckSegments:
+                    # extract ack number from each segment
+                    incomingSegmentAckNumber = incomingSegment.acknum
+                    # add this data to server ack number container
+                    self.ackNumberContainer.append(incomingSegmentAckNumber)
+                    print("Client receives ack segments")
+                    print(self.ackNumberContainer)
+
+            # After checking acks, send messages
             for segment in self.listSegments[self.flowControlStart: self.flowControlEnd]:
                 print("Sending Segment:", segment.to_string())
                 self.sendChannel.send(segment)
@@ -184,11 +202,6 @@ class RDTLayer(object):
         #
         # # Use the unreliable sendChannel to send the segment
         # self.sendChannel.send(segmentSend)
-
-    def flowControlWindowChecker(self):
-        """Update the start and end points for flow control window"""
-        for segment in self.listSegments:
-            pass
 
     def calculatePacketSizes(self):
         """Return a list of sizes that contains max number of characters per packet in flow control window size"""
@@ -239,6 +252,7 @@ class RDTLayer(object):
         :param partitionedData: Sequence numbers will be generated for this list
         :return: A list of sequence numbers
         """
+
         index = 0
         seqNum = 0
         listSeqNumbers = [index]
@@ -250,8 +264,23 @@ class RDTLayer(object):
         # We do not need to calculate the sequence number after the last packet
         listSeqNumbers.pop()
 
-        # print(listSeqNumbers)
+        print(listSeqNumbers)
         return(listSeqNumbers)
+
+    # def calculatePacketSequenceNumbers(self, partitionedData):
+    #     """
+    #     Return a list of sequence numbers for packet generation
+    #     :param partitionedData: Sequence numbers will be generated for this list
+    #     :return: A list of sequence numbers
+    #     """
+    #
+    #     listSeqNumbers = []
+    #
+    #     for element in partitionedData:
+    #         seqNum = partitionedData.index(element)
+    #         listSeqNumbers.append(seqNum)
+    #
+    #     return(listSeqNumbers)
 
     def createSegments(self, listData, listSeqNum):
         """
@@ -285,7 +314,7 @@ class RDTLayer(object):
         # This call returns a list of incoming segments (see Segment class)...
         listIncomingSegments = self.receiveChannel.receive()
 
-        # If this is server (the side that receives only data)
+        # If this is server (the side that receives only data segments)
         if self.thisIsClient is False and self.thisIsServer is True:
 
             if listIncomingSegments:

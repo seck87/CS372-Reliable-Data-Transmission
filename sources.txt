@@ -3,3 +3,6 @@ https://edstem.org/us/courses/51611/discussion/4425338
 https://www.digitalocean.com/community/tutorials/python-time-sleep
 https://madpackets.com/2018/04/25/tcp-sequence-and-acknowledgement-numbers-explained/
 https://www.jetbrains.com/help/mps/commenting-and-uncommenting-blocks-of-code.html
+https://www.geeksforgeeks.org/python-list-slicing/
+https://www.freecodecamp.org/news/append-a-string-in-python-str-appending/
+https://www.tutorialspoint.com/python/list_max.htm
