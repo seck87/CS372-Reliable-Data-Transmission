@@ -162,6 +162,9 @@ class RDTLayer(object):
         # The seqnum is the sequence number for the segment (in character number, not bytes)
 
         # If the segment list is not created and this is client sending the data, prepare the segment list
+        # I know this is inefficient but at the beginning I had not noticed that the channel was able to corrupt
+        # previously saved packets, therefore this list of segment object is created again every time
+
         if self.thisIsClient is True and self.thisIsServer is False:
             listPacketSizes = self.calculatePacketSizes()
             listDividedData = self.divideDataToSend(listPacketSizes)
