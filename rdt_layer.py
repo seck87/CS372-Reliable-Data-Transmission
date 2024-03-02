@@ -25,8 +25,8 @@ class RDTLayer(object):
     #                                                                                                                  #
     #                                                                                                                  #
     # ################################################################################################################ #
-    DATA_LENGTH = 4 # in characters                     # The length of the string data that will be sent per packet...
-    FLOW_CONTROL_WIN_SIZE = 15 # in characters          # Receive window size for flow-control
+    DATA_LENGTH = 4  # in characters                     # The length of the string data that will be sent per packet...
+    FLOW_CONTROL_WIN_SIZE = 15  # in characters          # Receive window size for flow-control
     sendChannel = None
     receiveChannel = None
     dataToSend = ''
@@ -73,7 +73,6 @@ class RDTLayer(object):
         self.thisIsServer = True
         self.thisIsClient = False
 
-
     # ################################################################################################################ #
     # setSendChannel()                                                                                                 #
     #                                                                                                                  #
@@ -104,7 +103,7 @@ class RDTLayer(object):
     #                                                                                                                  #
     #                                                                                                                  #
     # ################################################################################################################ #
-    def setDataToSend(self,data):
+    def setDataToSend(self, data):
         self.dataToSend = data
 
         # In rdt_main, the side that receives dataToSend is client. So, the object that receives dataToSend will be set
@@ -163,7 +162,7 @@ class RDTLayer(object):
         # The seqnum is the sequence number for the segment (in character number, not bytes)
 
         # If the segment list is not created and this is client sending the data, prepare the segment list
-        if (self.listSegments is None) and (self.thisIsClient is True and self.thisIsServer is False):
+        if self.thisIsClient is True and self.thisIsServer is False:
             listPacketSizes = self.calculatePacketSizes()
             listDividedData = self.divideDataToSend(listPacketSizes)
             listSequenceNumbers = self.calculatePacketSequenceNumbers(listDividedData)
@@ -179,12 +178,14 @@ class RDTLayer(object):
 
                 # Check ack segments
                 for incomingSegment in listOfAckSegments:
+
                     # extract ack number from each segment
                     incomingSegmentAckNumber = incomingSegment.acknum
                     # add this data to server ack number container
                     self.ackNumberContainer.append(incomingSegmentAckNumber)
                     print("Client receives ack segments")
                     print(self.ackNumberContainer)
+
 
             # After checking acks, send messages
 
@@ -210,7 +211,7 @@ class RDTLayer(object):
         # data = "x"
         # segmentSend = Segment()
         #
-        # # ############################################################################################################ #
+        # # ############################################################################################################
         # # Display sending segment
         # segmentSend.setData(seqnum,data)
         # print("Sending segment: ", segmentSend.to_string())
@@ -280,7 +281,7 @@ class RDTLayer(object):
         listSeqNumbers.pop()
 
         print(listSeqNumbers)
-        return(listSeqNumbers)
+        return listSeqNumbers
 
     # def calculatePacketSequenceNumbers(self, partitionedData):
     #     """
@@ -334,7 +335,9 @@ class RDTLayer(object):
 
             if listIncomingSegments:
                 for incomingSegment in listIncomingSegments:
-                    if incomingSegment.checkChecksum() is True:  # and incoming segment has the right seqnum
+                    # Check checksum and seqnum for this segment
+                    if incomingSegment.checkChecksum() is True and incomingSegment.seqnum <= self.serverLastSeqNum + 5:
+
                         # extract payload from each segment
                         incomingSegmentPayload = incomingSegment.payload
                         # add this data to server data container
@@ -343,20 +346,21 @@ class RDTLayer(object):
                         incomingSegmentSeqNum = incomingSegment.seqnum
                         # add this data to server data container
                         self.serverLastSeqNum = incomingSegmentSeqNum
+
+                        # Now send the ack segments for correctly received data segment
+                        segmentAck = Segment()
+                        segmentAck.setAck(self.serverLastSeqNum)
+                        print("Sending ack: ", segmentAck.to_string())
+                        self.sendChannel.send(segmentAck)
+
                     else:  # if incomingSegment.checkChecksum() is False, discard the segment
-                        continue
 
-                    # Now send the ack segments for correctly received data segments
-                    segmentAck = Segment()
-                    segmentAck.setAck(self.serverLastSeqNum)
-                    print("Sending ack: ", segmentAck.to_string())
-                    self.sendChannel.send(segmentAck)
+                        # We should send the sequence number of last data packet received correctly
+                        segmentAck = Segment()
+                        segmentAck.setAck(self.serverLastSeqNum)
+                        print("Data Error - Sending previous ack: ", segmentAck.to_string())
+                        self.sendChannel.send(segmentAck)
 
-                    # send ack for each segment
-                    # segmentAck = Segment()
-                    # segmentAck.setAck(incomingSegment.seqnum)
-                    # print("Sending ack: ", segmentAck.to_string())
-                    # self.sendChannel.send(segmentAck)
 
 
         # ############################################################################################################ #
@@ -373,7 +377,6 @@ class RDTLayer(object):
         # Somewhere in here you will be setting the contents of the ack segments to send.
         # The goal is to employ cumulative ack, just like TCP does...
         # acknum = "0"
-
 
         # ############################################################################################################ #
         # Display response segment
