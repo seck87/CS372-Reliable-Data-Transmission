@@ -50,6 +50,9 @@ class RDTLayer(object):
     # Variable to store ack numbers received, for client
     ackNumberContainer = []
 
+    # Variable to store the sequence number of the last data segment received, for server
+    serverLastSeqNum = 0
+
     # ################################################################################################################ #
     # __init__()                                                                                                       #
     #                                                                                                                  #
@@ -326,21 +329,34 @@ class RDTLayer(object):
         # This call returns a list of incoming segments (see Segment class)...
         listIncomingSegments = self.receiveChannel.receive()
 
-        # If this is server (the side that receives only data segments)
+        # If this is server (the side that receives only data segments), never receives ack segments
         if self.thisIsClient is False and self.thisIsServer is True:
 
             if listIncomingSegments:
                 for incomingSegment in listIncomingSegments:
-                    # extract payload from each segment
-                    incomingSegmentPayload = incomingSegment.payload
-                    # add this data to server data container
-                    self.dataReceived += incomingSegmentPayload
+                    if incomingSegment.checkChecksum() is True:  # and incoming segment has the right seqnum
+                        # extract payload from each segment
+                        incomingSegmentPayload = incomingSegment.payload
+                        # add this data to server data container
+                        self.dataReceived += incomingSegmentPayload
+                        # extract the seqnum from the segment
+                        incomingSegmentSeqNum = incomingSegment.seqnum
+                        # add this data to server data container
+                        self.serverLastSeqNum = incomingSegmentSeqNum
+                    else:  # if incomingSegment.checkChecksum() is False, discard the segment
+                        continue
 
-                    # send ack for each segment
+                    # Now send the ack segments for correctly received data segments
                     segmentAck = Segment()
-                    segmentAck.setAck(incomingSegment.seqnum)
+                    segmentAck.setAck(self.serverLastSeqNum)
                     print("Sending ack: ", segmentAck.to_string())
                     self.sendChannel.send(segmentAck)
+
+                    # send ack for each segment
+                    # segmentAck = Segment()
+                    # segmentAck.setAck(incomingSegment.seqnum)
+                    # print("Sending ack: ", segmentAck.to_string())
+                    # self.sendChannel.send(segmentAck)
 
 
         # ############################################################################################################ #
