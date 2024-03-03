@@ -88,7 +88,7 @@ while True:
         break
 
     #time.sleep(1)
-    input("Press enter to continue...")
+    #input("Press enter to continue...")
 
 print("countTotalDataPackets: {0}".format(clientToServerChannel.countTotalDataPackets))
 print("countSentPackets: {0}".format(clientToServerChannel.countSentPackets + serverToClientChannel.countSentPackets))
@@ -99,6 +99,6 @@ print("countDroppedDataPackets: {0}".format(clientToServerChannel.countDroppedPa
 print("countAckPackets: {0}".format(serverToClientChannel.countAckPackets))
 print("countDroppedAckPackets: {0}".format(serverToClientChannel.countDroppedPackets))
 
-# print("# segment timeouts: {0}".format(client.countSegmentTimeouts))
+print("# segment timeouts: {0}".format(client.countSegmentTimeouts))
 
 print("TOTAL ITERATIONS: {0}".format(loopIter))

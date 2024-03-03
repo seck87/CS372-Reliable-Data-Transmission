@@ -66,7 +66,9 @@ class RDTLayer(object):
         self.receiveChannel = None
         self.dataToSend = ''
         self.currentIteration = 0
+
         # Add items as needed
+        self.countSegmentTimeouts = 0
 
         # In rdt_main, the side that receives dataToSend is client. So, every object will be initialized as server, and
         # the object that receives dataToSend will be set as "client".
@@ -172,6 +174,10 @@ class RDTLayer(object):
             listSegments = self.createSegments(listDividedData, listSequenceNumbers)
             self.listSegments = listSegments
 
+        # if self.thisIsClient is True and self.thisIsServer is False:
+        #     print("Flow control window:")
+        #     print(self.listSegments[self.flowControlStart].seqnum, self.listSegments[self.flowControlEnd].seqnum)
+
         # Client
         if self.thisIsClient is True and self.thisIsServer is False:
 
@@ -186,9 +192,9 @@ class RDTLayer(object):
                     incomingSegmentAckNumber = incomingSegment.acknum
                     # add this data to server ack number container
                     self.ackNumberContainer.append(incomingSegmentAckNumber)
-                    print("Client receives ack segments")
-                    print(self.ackNumberContainer)
 
+                print("ACK segments received by the client: ")
+                print(self.ackNumberContainer)
 
             # After checking acks, send messages
 
@@ -199,6 +205,9 @@ class RDTLayer(object):
                     if ackToFind == segment.seqnum:
                         self.flowControlStart = self.listSegments.index(segment) + 1
                         self.flowControlEnd = self.flowControlStart + 4
+                        # print("Flow control window:")
+                        # print(self.listSegments[self.flowControlStart].seqnum,
+                        #       self.listSegments[self.flowControlEnd].seqnum)
             else:
                 self.flowControlStart = 0
                 self.flowControlEnd = self.flowControlStart + 4
@@ -359,11 +368,17 @@ class RDTLayer(object):
                     else:  # if incomingSegment.checkChecksum() is False, discard the segment
 
                         # We should send the sequence number of last data packet received correctly
+
+                        # If the server is expecting the first packet and its corrupt
+                        if self.serverLastSeqNum == 0:
+                            print("First packet is corrupt")
+                            # Do not send any ack
+                            break
+
                         segmentAck = Segment()
                         segmentAck.setAck(self.serverLastSeqNum)
                         print("Data Error - Sending previous ack: ", segmentAck.to_string())
                         self.sendChannel.send(segmentAck)
-
 
 
         # ############################################################################################################ #
