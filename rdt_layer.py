@@ -157,29 +157,15 @@ class RDTLayer(object):
     # ################################################################################################################ #
     def processSend(self):
 
-        # You should pipeline segments to fit the flow-control window
-        # The flow-control window is the constant RDTLayer.FLOW_CONTROL_WIN_SIZE
-        # The maximum data that you can send in a segment is RDTLayer.DATA_LENGTH
-        # These constants are given in # characters
-
-        # Somewhere in here you will be creating data segments to send.
-        # The data is just part of the entire string that you are trying to send.
-        # The seqnum is the sequence number for the segment (in character number, not bytes)
-
         # If the segment list is not created and this is client sending the data, prepare the segment list
         # I know this is inefficient but at the beginning I had not noticed that the channel was able to corrupt
         # previously saved packets, therefore this list of segment object is created again every time
-
         if self.thisIsClient is True and self.thisIsServer is False:
             listPacketSizes = self.calculatePacketSizes()
             listDividedData = self.divideDataToSend(listPacketSizes)
             listSequenceNumbers = self.calculatePacketSequenceNumbers(listDividedData)
             listSegments = self.createSegments(listDividedData, listSequenceNumbers)
             self.listSegments = listSegments
-
-        # if self.thisIsClient is True and self.thisIsServer is False:
-        #     print("Flow control window:")
-        #     print(self.listSegments[self.flowControlStart].seqnum, self.listSegments[self.flowControlEnd].seqnum)
 
         # Client
         if self.thisIsClient is True and self.thisIsServer is False:
@@ -195,9 +181,6 @@ class RDTLayer(object):
                     incomingSegmentAckNumber = incomingSegment.acknum
                     # add this data to server ack number container
                     self.ackNumberContainer.append(incomingSegmentAckNumber)
-
-                print("ACK segments received by the client: ")
-                print(self.ackNumberContainer)
 
             # After checking acks, send messages
 
@@ -219,21 +202,6 @@ class RDTLayer(object):
                 print("Sending Segment:", segment.to_string())
                 self.sendChannel.send(segment)
 
-            # self.flowControlStart += 4
-            # self.flowControlEnd += 4
-
-        # seqnum = "0"
-        # data = "x"
-        # segmentSend = Segment()
-        #
-        # # ############################################################################################################
-        # # Display sending segment
-        # segmentSend.setData(seqnum,data)
-        # print("Sending segment: ", segmentSend.to_string())
-        #
-        # # Use the unreliable sendChannel to send the segment
-        # self.sendChannel.send(segmentSend)
-
     def calculatePacketSizes(self):
         """Return a list of sizes that contains max number of characters per packet in flow control window size"""
 
@@ -249,7 +217,6 @@ class RDTLayer(object):
         if self.FLOW_CONTROL_WIN_SIZE % self.DATA_LENGTH != 0:
             listPacketCharSizes.append(self.FLOW_CONTROL_WIN_SIZE - numberOfPackets * self.DATA_LENGTH)
 
-        # print(listPacketCharSizes)
         return listPacketCharSizes
 
     def divideDataToSend(self, packetSizes):
@@ -274,7 +241,6 @@ class RDTLayer(object):
                     dividedData.append(chunk)
                     index += size
 
-        # print(dividedData)
         return dividedData
 
     def calculatePacketSequenceNumbers(self, partitionedData):
@@ -295,23 +261,7 @@ class RDTLayer(object):
         # We do not need to calculate the sequence number after the last packet
         listSeqNumbers.pop()
 
-        print(listSeqNumbers)
         return listSeqNumbers
-
-    # def calculatePacketSequenceNumbers(self, partitionedData):
-    #     """
-    #     Return a list of sequence numbers for packet generation
-    #     :param partitionedData: Sequence numbers will be generated for this list
-    #     :return: A list of sequence numbers
-    #     """
-    #
-    #     listSeqNumbers = []
-    #
-    #     for element in partitionedData:
-    #         seqNum = partitionedData.index(element)
-    #         listSeqNumbers.append(seqNum)
-    #
-    #     return(listSeqNumbers)
 
     def createSegments(self, listData, listSeqNum):
         """
@@ -326,9 +276,6 @@ class RDTLayer(object):
             segment = Segment()
             segment.setData(seqNum, data)
             listSegments.append(segment)
-
-        # for segment in listSegments:
-        #     segment.printToConsole()
 
         return listSegments
 
@@ -368,7 +315,7 @@ class RDTLayer(object):
                         self.dataReceived += incomingSegmentPayload
                         # extract the seqnum from the segment
                         incomingSegmentSeqNum = incomingSegment.seqnum
-                        # add this data to server data container
+                        # assign this data to server data container
                         self.serverLastSeqNum = incomingSegmentSeqNum
 
                         # Now send the ack segments for correctly received data segment
@@ -380,9 +327,7 @@ class RDTLayer(object):
                         self.sentAckNumberContainer.append(self.serverLastSeqNum)
                         self.sendChannel.send(segmentAck)
 
-                    else:  # if incomingSegment.checkChecksum() is False, discard the segment
-
-                        # We should send the sequence number of last data packet received correctly
+                    else:  # discard the segment by not using its payload
 
                         # If the server is expecting the first packet and its corrupt
                         if self.serverLastSeqNum == 0:
@@ -390,32 +335,8 @@ class RDTLayer(object):
                             # Do not send any ack
                             break
 
-
+                        # We should send the sequence number of last data packet received correctly
                         segmentAck = Segment()
                         segmentAck.setAck(self.serverLastSeqNum)
                         print("Data Error - Sending previous ack: ", segmentAck.to_string())
                         self.sendChannel.send(segmentAck)
-
-
-        # ############################################################################################################ #
-        # What segments have been received?
-        # How will you get them back in order?
-        # This is where a majority of your logic will be implemented
-        # print('processReceive(): Complete this...')
-
-        # ############################################################################################################ #
-        # How do you respond to what you have received?
-        # How can you tell data segments apart from ack segemnts?
-        # print('processReceive(): Complete this...')
-
-        # Somewhere in here you will be setting the contents of the ack segments to send.
-        # The goal is to employ cumulative ack, just like TCP does...
-        # acknum = "0"
-
-        # ############################################################################################################ #
-        # Display response segment
-        # segmentAck.setAck(acknum)
-        # print("Sending ack: ", segmentAck.to_string())
-        #
-        # # Use the unreliable sendChannel to send the ack packet
-        # self.sendChannel.send(segmentAck)
