@@ -50,6 +50,9 @@ class RDTLayer(object):
     # Variable to store ack numbers received, for client
     ackNumberContainer = []
 
+    # Sent ack number container, for server
+    sentAckNumberContainer = []
+
     # Variable to store the sequence number of the last data segment received, for server
     serverLastSeqNum = 0
 
@@ -348,7 +351,9 @@ class RDTLayer(object):
             if listIncomingSegments:
                 for incomingSegment in listIncomingSegments:
                     # Check checksum and seqnum for this segment
-                    if incomingSegment.checkChecksum() is True and incomingSegment.seqnum <= self.serverLastSeqNum + 5:
+                    if (incomingSegment.checkChecksum() is True and
+                            incomingSegment.seqnum <= self.serverLastSeqNum + 5 and
+                            incomingSegment.seqnum not in self.sentAckNumberContainer):
 
                         # extract payload from each segment
                         incomingSegmentPayload = incomingSegment.payload
@@ -363,6 +368,9 @@ class RDTLayer(object):
                         segmentAck = Segment()
                         segmentAck.setAck(self.serverLastSeqNum)
                         print("Sending ack: ", segmentAck.to_string())
+                        # The following ack numbers are for segments with payload already received,
+                        # will use this to detect duplicate packets
+                        self.sentAckNumberContainer.append(self.serverLastSeqNum)
                         self.sendChannel.send(segmentAck)
 
                     else:  # if incomingSegment.checkChecksum() is False, discard the segment
