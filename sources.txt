@@ -7,4 +7,4 @@ https://www.geeksforgeeks.org/python-list-slicing/
 https://www.freecodecamp.org/news/append-a-string-in-python-str-appending/
 https://www.tutorialspoint.com/python/list_max.htm
 https://media.pearsoncmg.com/ph/esm/ecs_kurose_compnetwork_8/cw/content/interactiveanimations/go-back-n-protocol/index.html
-
+https://text-compare.com/  # used for debugging

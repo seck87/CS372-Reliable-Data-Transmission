@@ -350,9 +350,16 @@ class RDTLayer(object):
 
             if listIncomingSegments:
                 for incomingSegment in listIncomingSegments:
+
+                    # If no ack segments received, then first segment received should have seqnum zero
+                    if len(self.sentAckNumberContainer) == 0 and incomingSegment.seqnum != 0:
+                        break
+
                     # Check checksum and seqnum for this segment
                     if (incomingSegment.checkChecksum() is True and
-                            incomingSegment.seqnum <= self.serverLastSeqNum + 5 and
+                            # segment is in order
+                            incomingSegment.seqnum <= self.serverLastSeqNum + 4 and
+                            # segment is not duplicate
                             incomingSegment.seqnum not in self.sentAckNumberContainer):
 
                         # extract payload from each segment
@@ -382,6 +389,7 @@ class RDTLayer(object):
                             print("First packet is corrupt")
                             # Do not send any ack
                             break
+
 
                         segmentAck = Segment()
                         segmentAck.setAck(self.serverLastSeqNum)
