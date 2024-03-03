@@ -88,7 +88,7 @@ while True:
         break
 
     #time.sleep(1)
-    #input("Press enter to continue...")
+    input("Press enter to continue...")
 
 print("countTotalDataPackets: {0}".format(clientToServerChannel.countTotalDataPackets))
 print("countSentPackets: {0}".format(clientToServerChannel.countSentPackets + serverToClientChannel.countSentPackets))
